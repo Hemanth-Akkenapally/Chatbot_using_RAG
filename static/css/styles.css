@@ -1,0 +1,166 @@
+/* General styling */
+body {
+    font-family: 'Arial', sans-serif;
+    background-color: #f9fafb;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+}
+
+/* Chatbot container styling */
+.chatbot-container {
+    width: 100%;
+    max-width: 800px;
+    margin: 0 auto;
+    background-color: #ffffff;
+    border-radius: 15px;
+    overflow: hidden;
+    height: 90vh;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* Header styling (sticky) */
+#header {
+    background-color: #005bbb;
+    color: white;
+    font-size: 24px;
+    font-weight: bold;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+
+/* Chat area styling */
+#chatbot {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    background-color: #f3f4f6;
+    overflow-y: scroll;
+}
+
+#conversation {
+    flex: 1;
+    padding: 20px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+/* Scrollbar styling */
+#conversation::-webkit-scrollbar {
+    width: 8px;
+}
+
+#conversation::-webkit-scrollbar-thumb {
+    background-color: #cccccc;
+    border-radius: 10px;
+}
+
+/* Chatbot message styling */
+.chatbot-message .chatbot-text {
+    background-color: #e8f5ff; /* Light blue */
+    color: #000000;
+    border-radius: 12px;
+    padding: 10px 15px;
+    display: inline-block;
+    font-size: 16px;
+    max-width: 75%;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+/* User message styling */
+.user-message {
+    align-self: flex-end; /* Align to the right */
+}
+
+.user-message .user-text {
+    background-color: #0078d7; /* Blue for user messages */
+    color: white;
+    border-radius: 12px;
+    padding: 10px 15px;
+    display: inline-block;
+    font-size: 16px;
+    text-align: right;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+/* Spinner styling */
+.spinner-small {
+    width: 20px;
+    height: 20px;
+    border-width: 2px;
+}
+
+/* File upload success message styling */
+.upload-success {
+    align-self: flex-end;
+    color: #28a745;
+    font-size: 14px;
+    margin-top: 5px;
+}
+
+/* Input section styling */
+#input-form {
+    border-top: 1px solid #d3d3d3;
+    background-color: #ffffff;
+    padding: 10px 15px;
+    display: flex;
+    align-items: center;
+    position: sticky;
+    bottom: 0;
+    z-index: 10;
+}
+
+#input-field {
+    border-radius: 25px;
+    background: #f3f3f3;
+    padding: 10px 15px;
+    font-size: 16px;
+    border: 1px solid #ccc;
+    flex: 1;
+    outline: none;
+    transition: all 0.2s ease;
+}
+
+#input-field:focus {
+    border-color: #005bbb;
+    background-color: #ffffff;
+}
+
+button {
+    border-radius: 50%;
+    font-size: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    background-color: #005bbb;
+    color: white;
+    border: none;
+    transition: background-color 0.3s ease;
+    margin-left: 10px;
+}
+
+button:hover {
+    background-color: #003f7d;
+}
+
+.upload-icon {
+    font-size: 20px;
+    color: #005bbb;
+    transition: color 0.3s ease;
+    margin-right: 10px;
+    cursor: pointer;
+}
+
+.upload-icon:hover {
+    color: #003f7d;
+}
