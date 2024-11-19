@@ -17,14 +17,24 @@ S3_BUCKET_NAME = "medsummarize-data"
 S3_REGION_NAME = "us-east-2"
 s3_client = boto3.client('s3', region_name=S3_REGION_NAME)
 
+# Persistent storage paths
+storage_dir = os.path.join(os.getcwd(), "data")
+os.makedirs(storage_dir, exist_ok=True)
+
 # Local paths for downloaded files
-faiss_index_path = os.path.join(tempfile.gettempdir(), "all_faiss_index")
-embeddings_path = os.path.join(tempfile.gettempdir(), "all_embeddings.npy")
-txt_file_path = os.path.join(tempfile.gettempdir(), "all_texts.txt")
+faiss_index_path = os.path.join(storage_dir, "all_faiss_index")
+embeddings_path = os.path.join(storage_dir, "all_embeddings.npy")
+txt_file_path = os.path.join(storage_dir, "all_texts.txt")
 
 
 # Helper function to download files from S3
-def download_from_s3(bucket_name, key, local_path):
+# Helper function to download files from S3 if not already downloaded
+def download_from_s3_if_needed(bucket_name, key, local_path):
+    if os.path.exists(local_path):
+        print(f"File {local_path} already exists, skipping download.")
+        return
+
+    print(f"Downloading {key} from S3 to {local_path}...")
     try:
         s3_client.download_file(bucket_name, key, local_path)
         print(f"Downloaded {key} to {local_path}")
@@ -32,11 +42,11 @@ def download_from_s3(bucket_name, key, local_path):
         raise FileNotFoundError(f"Error downloading {key} from S3: {e}")
 
 
-# Download FAISS index, embeddings, and text data from S3
+# Download files only if they are missing
 try:
-    download_from_s3(S3_BUCKET_NAME, "all_faiss_index", faiss_index_path)
-    download_from_s3(S3_BUCKET_NAME, "all_embeddings.npy", embeddings_path)
-    download_from_s3(S3_BUCKET_NAME, "all_texts.txt", txt_file_path)
+    download_from_s3_if_needed(S3_BUCKET_NAME, "all_faiss_index", faiss_index_path)
+    download_from_s3_if_needed(S3_BUCKET_NAME, "all_embeddings.npy", embeddings_path)
+    download_from_s3_if_needed(S3_BUCKET_NAME, "all_texts.txt", txt_file_path)
 except FileNotFoundError as e:
     print(f"Error: {e}")
     raise SystemExit("Failed to load necessary files from S3. Ensure files exist in the bucket.")
@@ -97,25 +107,31 @@ def extract_text_from_file(filepath):
 
 # Retrieval and summarization functions
 def retrieve_context(query_text, index, all_texts, embedding_model, k=5):
-    query_embedding = embedding_model.encode([query_text], convert_to_numpy=True)
-    distances, indices = index.search(query_embedding, k)
-    retrieved_contexts = [all_texts[i] for i in indices.flatten()]
-    return " ".join(retrieved_contexts)
+    try:
+        query_embedding = embedding_model.encode([query_text], convert_to_numpy=True)
+        distances, indices = index.search(query_embedding, k)
+        retrieved_contexts = [all_texts[i] for i in indices.flatten()]
+        return " ".join(retrieved_contexts)
+    except Exception as e:
+        raise ValueError(f"Error retrieving context: {e}")
 
 
 def generate_summary(context, model, tokenizer, max_length=200):
-    inputs = tokenizer(context, return_tensors="pt", max_length=1024, truncation=True)
-    summary_ids = model.generate(
-        inputs['input_ids'],
-        max_length=max_length,
-        num_beams=4,
-        early_stopping=True,
-        do_sample=True,
-        top_k=50,
-        top_p=0.95,
-        temperature=0.7  # Add randomness
-    )
-    return tokenizer.decode(summary_ids[0], skip_special_tokens=True)
+    try:
+        inputs = tokenizer(context, return_tensors="pt", max_length=1024, truncation=True)
+        summary_ids = model.generate(
+            inputs['input_ids'],
+            max_length=max_length,
+            num_beams=4,
+            early_stopping=True,
+            do_sample=True,
+            top_k=50,
+            top_p=0.95,
+            temperature=0.7  # Add randomness
+        )
+        return tokenizer.decode(summary_ids[0], skip_special_tokens=True)
+    except Exception as e:
+        raise ValueError(f"Error generating summary: {e}")
 
 
 # Flask routes
