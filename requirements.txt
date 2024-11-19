@@ -5,3 +5,4 @@ transformers~=4.46.3
 pymupdf
 sentence_transformers
 faiss-cpu
+boto3

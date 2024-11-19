@@ -10,7 +10,7 @@ import numpy as np
 import tempfile
 
 # Initialize Flask app
-app = Flask(_name_)
+app = Flask(__name__)
 
 # AWS S3 Configurations
 S3_BUCKET_NAME = "medsummarize-data"
@@ -18,9 +18,10 @@ S3_REGION_NAME = "us-east-2"
 s3_client = boto3.client('s3', region_name=S3_REGION_NAME)
 
 # Local paths for downloaded files
-faiss_index_path = "/tmp/all_faiss_index"
-embeddings_path = "/tmp/all_embeddings.npy"
-txt_file_path = "/tmp/all_texts.txt"
+faiss_index_path = os.path.join(tempfile.gettempdir(), "all_faiss_index")
+embeddings_path = os.path.join(tempfile.gettempdir(), "all_embeddings.npy")
+txt_file_path = os.path.join(tempfile.gettempdir(), "all_texts.txt")
+
 
 # Helper function to download files from S3
 def download_from_s3(bucket_name, key, local_path):
@@ -29,6 +30,7 @@ def download_from_s3(bucket_name, key, local_path):
         print(f"Downloaded {key} to {local_path}")
     except Exception as e:
         raise FileNotFoundError(f"Error downloading {key} from S3: {e}")
+
 
 # Download FAISS index, embeddings, and text data from S3
 try:
@@ -62,6 +64,7 @@ except FileNotFoundError:
     all_texts = []
     print("The provided .txt file is invalid or missing.")
 
+
 # File parsing utilities
 def parse_pdf(filepath):
     text = ""
@@ -70,13 +73,16 @@ def parse_pdf(filepath):
             text += page.get_text()
     return text
 
+
 def parse_docx(filepath):
     doc = Document(filepath)
     return "\n".join([para.text for para in doc.paragraphs])
 
+
 def parse_txt(filepath):
     with open(filepath, 'r') as file:
         return file.read()
+
 
 def extract_text_from_file(filepath):
     if filepath.endswith('.pdf'):
@@ -88,12 +94,14 @@ def extract_text_from_file(filepath):
     else:
         raise ValueError("Unsupported file format. Please upload .pdf, .docx, or .txt.")
 
+
 # Retrieval and summarization functions
 def retrieve_context(query_text, index, all_texts, embedding_model, k=5):
     query_embedding = embedding_model.encode([query_text], convert_to_numpy=True)
     distances, indices = index.search(query_embedding, k)
     retrieved_contexts = [all_texts[i] for i in indices.flatten()]
     return " ".join(retrieved_contexts)
+
 
 def generate_summary(context, model, tokenizer, max_length=200):
     inputs = tokenizer(context, return_tensors="pt", max_length=1024, truncation=True)
@@ -109,10 +117,12 @@ def generate_summary(context, model, tokenizer, max_length=200):
     )
     return tokenizer.decode(summary_ids[0], skip_special_tokens=True)
 
+
 # Flask routes
 @app.route("/")
 def home():
     return render_template("index.html")
+
 
 @app.route("/chat", methods=["POST"])
 def chat():
@@ -146,6 +156,7 @@ def chat():
     except Exception as e:
         return jsonify({"error": str(e)})
 
+
 # Run Flask app
-if _name_ == "_main_":
+if __name__ == "__main__":
     app.run(debug=True)
