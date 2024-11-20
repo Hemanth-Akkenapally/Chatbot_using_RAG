@@ -116,7 +116,7 @@ def retrieve_context(query_text, index, all_texts, embedding_model, k=5):
         raise ValueError(f"Error retrieving context: {e}")
 
 
-def generate_summary(context, model, tokenizer, max_length=200):
+def generate_summary(context, model, tokenizer, max_length=400):
     try:
         inputs = tokenizer(context, return_tensors="pt", max_length=1024, truncation=True)
         summary_ids = model.generate(
