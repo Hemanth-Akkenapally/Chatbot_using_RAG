@@ -1,6 +1,6 @@
 import os
 import boto3
-from flask import Flask, request, jsonify, render_template
+from flask import Flask, request, jsonify, render_template, send_file
 import fitz  # PyMuPDF for PDF handling
 from docx import Document
 from transformers import BartTokenizer, BartForConditionalGeneration
@@ -103,7 +103,16 @@ def extract_text_from_file(filepath):
         return parse_txt(filepath)
     else:
         raise ValueError("Unsupported file format. Please upload .pdf, .docx, or .txt.")
-
+def extract_specific_section(text, section):
+    try:
+        # Mock logic: Customize this for specific section patterns
+        sections = {
+            "abstract": text.split("Abstract")[1].split("Introduction")[0],
+            "conclusion": text.split("Conclusion")[1],
+        }
+        return sections.get(section, text)
+    except Exception:
+        return text  # Fallback to full text if section extraction fails
 
 # Retrieval and summarization functions
 def retrieve_context(query_text, index, all_texts, embedding_model, k=5):
@@ -116,7 +125,7 @@ def retrieve_context(query_text, index, all_texts, embedding_model, k=5):
         raise ValueError(f"Error retrieving context: {e}")
 
 
-def generate_summary(context, model, tokenizer, max_length=400):
+def generate_summary(context, model, tokenizer, max_length):
     try:
         inputs = tokenizer(context, return_tensors="pt", max_length=1024, truncation=True)
         summary_ids = model.generate(
@@ -140,38 +149,58 @@ def home():
     return render_template("index.html")
 
 
+
 @app.route("/chat", methods=["POST"])
 def chat():
     try:
         # Get user input or uploaded file
         user_message = request.form.get("message")
         file = request.files.get("file")
+        section = request.form.get("section", "full").lower()  # Default to "full" for entire document
+        summary_type = request.form.get("summary_type", "short").lower()  # Default to "short"
+
+        # Set max_length for summary type
+        max_length = 150 if summary_type == "short" else 400
 
         # Process file if uploaded
         if file:
             # Create a temporary file in the system's temp directory
             with tempfile.NamedTemporaryFile(delete=False, suffix=os.path.splitext(file.filename)[-1]) as temp_file:
-                file.save(temp_file.name)  # Save the uploaded file to the temporary file
+                file.save(temp_file.name)
                 temp_filepath = temp_file.name
 
             try:
-                # Process the file (e.g., extract text)
+                # Extract text from the uploaded file
                 extracted_text = extract_text_from_file(temp_filepath)
             finally:
-                # Clean up the temporary file
                 os.remove(temp_filepath)
         else:
             extracted_text = user_message
 
-        # Retrieve context and generate response
+        # Extract specific sections (if requested)
+        if section != "full":
+            extracted_text = extract_specific_section(extracted_text, section)
+
+        # Retrieve context and generate summary
         retrieved_context = retrieve_context(extracted_text, index, all_texts, embedding_model)
         combined_input = extracted_text + "\n" + retrieved_context
-        summary = generate_summary(combined_input, summarization_model, tokenizer)
+        summary = generate_summary(combined_input, summarization_model, tokenizer, max_length=max_length)
 
-        return jsonify({"response": summary})
+        # Save summary to a file for download
+        summary_file_path = os.path.join(storage_dir, "summary.txt")
+        with open(summary_file_path, "w") as summary_file:
+            summary_file.write(summary)
+
+        return jsonify({"response": summary, "download_url": "/download_summary"})
+
     except Exception as e:
         return jsonify({"error": str(e)})
 
+
+@app.route("/download_summary", methods=["GET"])
+def download_summary():
+    summary_file_path = os.path.join(storage_dir, "summary.txt")
+    return send_file(summary_file_path, as_attachment=True)
 
 # Run Flask app
 if __name__ == "__main__":

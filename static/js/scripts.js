@@ -10,19 +10,18 @@ inputForm.addEventListener('submit', async function (event) {
 
     const userMessage = inputField.value.trim();
     const file = fileInput.files[0];
+    const summaryType = document.getElementById('summary-type').value;
+    const section = document.getElementById('section').value;
 
     if (!userMessage && !file) return;
 
     if (userMessage || file) addMessage(inputField.value, 'user-message');
 
-    // Reset the input field
-    inputField.value = '';
-    inputField.disabled = false;
-    inputField.placeholder = 'Upload the file or paste the text here...';
-
     const formData = new FormData();
     if (userMessage && !file) formData.append('message', userMessage);
     if (file) formData.append('file', file);
+    formData.append('summary_type', summaryType);
+    formData.append('section', section);
 
     showSpinner();
 
@@ -33,11 +32,16 @@ inputForm.addEventListener('submit', async function (event) {
         });
 
         const data = await response.json();
-
         hideSpinner();
 
         if (data.response) {
             addMessage(data.response, 'chatbot-message');
+
+            // Show download link
+            const downloadContainer = document.getElementById('download-container');
+            const downloadLink = document.getElementById('download-link');
+            downloadLink.href = '/download_summary';
+            downloadContainer.style.display = 'block';
         } else if (data.error) {
             addMessage(`Error: ${data.error}`, 'chatbot-message');
         }
@@ -47,7 +51,6 @@ inputForm.addEventListener('submit', async function (event) {
         console.error('API Error:', error);
     }
 
-    // Clear the file input after submission
     fileInput.value = '';
 });
 
